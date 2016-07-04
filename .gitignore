@@ -87,3 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+
+# Project Specific
+
+deep_face_hash/data/*
