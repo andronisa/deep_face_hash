@@ -19,6 +19,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD
 from keras.utils import np_utils
+from data.lfw_db import load_lfw_db
 
 batch_size = 32
 nb_classes = 10
@@ -31,13 +32,17 @@ img_rows, img_cols = 32, 32
 img_channels = 3
 
 # the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
-print('X_train shape:', X_train.shape)
+# (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+(X_train, X_valid, X_test), (y_train, y_valid, y_test) = load_lfw_db()
+
+print('\nX_train shape:', X_train.shape)
 print(X_train.shape[0], 'train samples')
+print(X_valid.shape[0], 'validation samples')
 print(X_test.shape[0], 'test samples')
 
 # convert class vectors to binary class matrices
 Y_train = np_utils.to_categorical(y_train, nb_classes)
+Y_valid = np_utils.to_categorical(y_valid, nb_classes)
 Y_test = np_utils.to_categorical(y_test, nb_classes)
 
 model = Sequential()
