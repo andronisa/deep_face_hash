@@ -1,16 +1,17 @@
 import os
 import numpy as np
 
-from keras.models import Sequential
 from keras.layers import Flatten, Dense, Dropout, Activation
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+
+from models import DeepFaceHashSequential
 
 
 WEIGHTS_PATH = os.path.abspath(os.path.join(os.path.dirname( __file__ ), "data", "weights", "vgg16_weights.h5"))
 
 
 def vgg_16(weights_path=None):
-	model = Sequential()
+	model = DeepFaceHashSequential()
 
 	model.add(ZeroPadding2D((1,1),input_shape=(3,224,224))) 
 	model.add(Convolution2D(64, 3, 3, activation='relu', name='conv1_1'))
@@ -50,21 +51,27 @@ def vgg_16(weights_path=None):
 
 	model.add(Flatten(name="flatten"))
 
-	model.add(Dense(4096, activation='relu', name='dense_1'))
-	model.add(Dropout(0.5))
+	# model.add(Dense(4096, activation='relu', name='dense_1'))
+	# model.add(Dropout(0.5))
 	
-	model.add(Dense(4096, activation='relu', name='dense_2'))
-	model.add(Dropout(0.5))
+	# model.add(Dense(4096, activation='relu', name='dense_2'))
+	# model.add(Dropout(0.5))
 	
-	model.add(Dense(1000, name='dense_3'))
-	model.add(Activation("softmax",name="softmax"))
+	# model.add(Dense(1000, name='dense_3'))
+	# model.add(Activation("softmax",name="softmax"))
 
 	if weights_path:
 		print("Trying to load weights...")
-		model.load_weights(weights_path)
+
+		excluded = ['dense_1', 'dense_2', 'dense_3', 'dropout_5', 'dropout_6' 'softmax']
+		model.load_weights(weights_path, excluded)
+
 		print("Weights loaded!!!")
 	return model
 
 
 if __name__ == '__main__':
-	vgg_16(weights_path=WEIGHTS_PATH)
+	model = vgg_16(weights_path=WEIGHTS_PATH)
+
+	# # Debug
+	# print(model.summary())
