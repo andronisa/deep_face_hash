@@ -92,3 +92,7 @@ ENV/
 # Project Specific
 
 deep_face_hash/data/*
+
+# IntelliJ
+.idea/
+.idea/*

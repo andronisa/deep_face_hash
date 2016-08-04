@@ -26,39 +26,41 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 
+
 def reshape_set(tr_set):
-	print("Shape of sample before transformation")
-	print(tr_set[0].shape)
-	print(tr_set[0])
+    print("Shape of sample before transformation")
+    print(tr_set[0].shape)
+    print(tr_set[0])
 
-	samples, rows, cols, rgb_classes = tr_set.shape
-	trans_tr_set = np.transpose(tr_set)
-	tr_set = tr_set.reshape(samples, rgb_classes, rows, cols)
+    samples, rows, cols, rgb_classes = tr_set.shape
+    trans_tr_set = np.transpose(tr_set)
+    # tr_set = tr_set.reshape(samples, rgb_classes, rows, cols)
+    #
+    # print("Shape of sample after transformation")
+    # print(trans_tr_set[0].shape)
+    # print(trans_tr_set[0])
+    #
+    # imgplot_two = plt.imshow(trans_tr_set[10])
+    # plt.show()
+    # exit()
 
-	print("Shape of sample after transformation")
-	print(transposed_tr_set[0].shape)
-	print(transposed_tr_set[0])
+    return trans_tr_set
 
-	imgplot_two = plt.imshow(transposed_tr_set[10])
-	plt.show()
-	exit()
-
-	return transposed_tr_set
 
 def swap_tr_axes(tr_set):
-	print("Shape of sample before transformation")
-	print(tr_set[10].shape)
-	# print(tr_set[10])
+    print("Shape of sample before transformation")
+    print(tr_set[10].shape)
+    # print(tr_set[10])
 
-	# samples, rows, cols, rgb_classes = tr_set.shape
-	first_swap = np.swapaxes(tr_set, 2, 3)
-	swapped_tr_set = np.swapaxes(first_swap, 1, 2)
+    # samples, rows, cols, rgb_classes = tr_set.shape
+    first_swap = np.swapaxes(tr_set, 2, 3)
+    swapped_tr_set = np.swapaxes(first_swap, 1, 2)
 
-	print("Shape of sample after transformation")
-	print(swapped_tr_set[10].shape)
-	# print(second_swap[10])
+    print("Shape of sample after transformation")
+    print(swapped_tr_set[10].shape)
+    # print(second_swap[10])
 
-	return swapped_tr_set
+    return swapped_tr_set
 
 
 batch_size = 32
@@ -92,7 +94,7 @@ Y_test = np_utils.to_categorical(y_test, nb_classes)
 model = Sequential()
 
 model.add(Convolution2D(50, 3, 3, border_mode='same',
-						input_shape=(rgb, img_rows, img_cols)))
+                        input_shape=(rgb, img_rows, img_cols)))
 model.add(Activation('relu'))
 model.add(Convolution2D(50, 3, 3))
 model.add(Activation('relu'))
@@ -118,8 +120,8 @@ model.summary()
 # let's train the model using SGD + momentum (how original).
 sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
-			  optimizer=sgd,
-			  metrics=['accuracy'])
+              optimizer=sgd,
+              metrics=['accuracy'])
 
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
@@ -127,35 +129,35 @@ X_train /= 255
 X_test /= 255
 
 if not data_augmentation:
-	print('Not using data augmentation.')
-	model.fit(X_train, Y_train,
-			  batch_size=batch_size,
-			  nb_epoch=nb_epoch,
-			  validation_data=(X_test, Y_test),
-			  shuffle=True)
+    print('Not using data augmentation.')
+    model.fit(X_train, Y_train,
+              batch_size=batch_size,
+              nb_epoch=nb_epoch,
+              validation_data=(X_test, Y_test),
+              shuffle=True)
 else:
-	print('Using real-time data augmentation.')
+    print('Using real-time data augmentation.')
 
-	# this will do preprocessing and realtime data augmentation
-	datagen = ImageDataGenerator(
-		featurewise_center=False,  # set input mean to 0 over the dataset
-		samplewise_center=False,  # set each sample mean to 0
-		featurewise_std_normalization=False,  # divide inputs by std of the dataset
-		samplewise_std_normalization=False,  # divide each input by its std
-		zca_whitening=False,  # apply ZCA whitening
-		rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
-		width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
-		height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
-		horizontal_flip=True,  # randomly flip images
-		vertical_flip=False)  # randomly flip images
+    # this will do preprocessing and realtime data augmentation
+    datagen = ImageDataGenerator(
+        featurewise_center=False,  # set input mean to 0 over the dataset
+        samplewise_center=False,  # set each sample mean to 0
+        featurewise_std_normalization=False,  # divide inputs by std of the dataset
+        samplewise_std_normalization=False,  # divide each input by its std
+        zca_whitening=False,  # apply ZCA whitening
+        rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+        horizontal_flip=True,  # randomly flip images
+        vertical_flip=False)  # randomly flip images
 
-	# compute quantities required for featurewise normalization
-	# (std, mean, and principal components if ZCA whitening is applied)
-	datagen.fit(X_train)
+    # compute quantities required for featurewise normalization
+    # (std, mean, and principal components if ZCA whitening is applied)
+    datagen.fit(X_train)
 
-	# fit the model on the batches generated by datagen.flow()
-	model.fit_generator(datagen.flow(X_train, Y_train,
-						batch_size=batch_size),
-						samples_per_epoch=X_train.shape[0],
-						nb_epoch=nb_epoch,
-						validation_data=(X_test, Y_test))
+    # fit the model on the batches generated by datagen.flow()
+    model.fit_generator(datagen.flow(X_train, Y_train,
+                                     batch_size=batch_size),
+                        samples_per_epoch=X_train.shape[0],
+                        nb_epoch=nb_epoch,
+                        validation_data=(X_test, Y_test))
