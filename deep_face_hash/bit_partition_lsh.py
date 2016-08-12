@@ -19,6 +19,7 @@ from scipy.spatial.distance import euclidean, cosine
 
 
 def generate_hash_vars(dim_size, window_size=500, bits=64):
+    bits = bits if bits else 64
     out_file = path.abspath(
         path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(bits) + ".p"))
 
