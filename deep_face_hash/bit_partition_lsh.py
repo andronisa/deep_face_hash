@@ -7,15 +7,29 @@ A_i in Rn random vector with each dimension sampled independently from the stand
 b_i in R is sampled from the uniform distribution U[0,W).
 W  window size
 """
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import numpy as np
 import pickle
+from os import path
 from scipy.spatial.distance import euclidean, cosine
 
 
-def get_dimensions(dim_size, window_size=1000, b_bits=64):
-    dims = []
-    for i in range(b_bits):
+def generate_hash_vars(dim_size, window_size=500, bits=64):
+    out_file = path.abspath(
+        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(bits) + ".p"))
+
+    if path.isfile(out_file):
+        print("Found hash vars. Loading...")
+        return pickle.load(open(out_file, 'rb'))
+
+    print("Generating hash vars...")
+
+    hash_vars = []
+    for i in range(bits):
         a_i = np.expand_dims(np.random.normal(0, 1, dim_size), axis=0)
         b_i = np.random.uniform(0, window_size, 1)[0]
 
@@ -24,23 +38,21 @@ def get_dimensions(dim_size, window_size=1000, b_bits=64):
             'b_i': b_i,
         }
 
-        dims.append(dim)
+        hash_vars.append(dim)
 
-    return dims
+    pickle.dump(hash_vars, open(out_file, 'wb'))
+    return hash_vars
 
 
-def hash_image(feature_maps=None, window_size=500, bits=64):
-    dimensionality = feature_maps[0].shape[1]
-
-    dimensions = get_dimensions(dimensionality, window_size, bits)
+def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=500, bits=64):
     hash_code_list = []
-
+    counter = 0
     for feat_map in feature_maps:
         hash_list = []
 
         for i in range(bits):
-            a_i = dimensions[i]['a_i']
-            b_i = dimensions[i]['b_i']
+            a_i = hash_vars[i]['a_i']
+            b_i = hash_vars[i]['b_i']
             # print(a_i.shape)
             # print(p_i.shape)
 
@@ -56,6 +68,9 @@ def hash_image(feature_maps=None, window_size=500, bits=64):
             hash_list.append(str(sigma_mod_2))
 
         hash_code_list.append(''.join(hash_list))
+        counter += 1
+        if counter % 100 == 0:
+            print("Generated " + str(counter) + " hash codes")
 
     return hash_code_list
 
@@ -72,7 +87,7 @@ def test_hashing():
 
     feat_map_list = [vector, vector_2, vector_3, vector_4, vector_5, vector_6, vector_7, vector_8]
 
-    img_hash_list = hash_image(feat_map_list)
+    img_hash_list = generate_hash_maps(feat_map_list)
 
     # for item in img_hash_list:
     #     print item

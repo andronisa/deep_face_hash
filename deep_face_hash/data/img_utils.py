@@ -40,7 +40,6 @@ def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rg
             img = img[:, (img_size[0] - crop_size[0]) // 2:(img_size[0] + crop_size[0]) // 2
             , (img_size[1] - crop_size[1]) // 2:(img_size[1] + crop_size[1]) // 2]
 
-        img = np.expand_dims(img, axis=0)
         images[counter, ...] = img
         counter += 1
 

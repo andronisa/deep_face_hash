@@ -1,15 +1,15 @@
 import os
 import pickle
 import editdistance
+import numpy as np
 
-from deep_face_hash_utils import preprocess_images
 from keras.layers import Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.optimizers import SGD
 
 from models import DeepFaceHashSequential
 from alternative_hashing import dhash
-from data.lfw_db import load_data
+from data.img_utils import preprocess_images
 
 WEIGHTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "weights", "vgg16_weights.h5"))
 
@@ -74,8 +74,27 @@ def vgg_16(weights_path=None, h=224, w=224):
     return model
 
 
-def test_hashing_lfw():
-    lfw_people = load_data('/home/aandronis/scikit_learn_data/lfw_home/lfw/', color_mode='rgb')
+def get_feature_no(img, model):
+    img = np.expand_dims(img, axis=0)
+    feature_map = model.predict(img)
+
+    return feature_map.shape[1]
+
+
+def generate_feature_maps(images, model):
+    feature_maps = []
+    counter = 0
+    for img in images:
+        img = np.expand_dims(img, axis=0)
+        feature_map = model.predict(img)
+        feature_maps.append(feature_map)
+        counter += 1
+
+        if counter % 100 == 0:
+            print("Generated " + str(counter) + " feature maps.")
+            return feature_maps
+
+    return feature_maps
 
 
 def test_hashing():
