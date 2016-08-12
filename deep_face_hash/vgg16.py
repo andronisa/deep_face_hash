@@ -82,6 +82,7 @@ def get_feature_no(img, model):
 
 
 def generate_feature_maps(images, model):
+    print("Generating Feature Maps...")
     feature_maps = []
     counter = 0
     for img in images:
@@ -93,8 +94,8 @@ def generate_feature_maps(images, model):
         if counter % 500 == 0:
             print("Generated " + str(counter) + " feature maps")
 
-            # if counter % 10 == 0:
-            #     return feature_maps
+        # if counter % 10 == 0:
+        #     return feature_maps
 
     print("Generated " + str(counter) + " total feature maps")
     return feature_maps

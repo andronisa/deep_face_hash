@@ -17,11 +17,13 @@ import pickle
 from os import path
 from scipy.spatial.distance import euclidean, cosine
 
+DEFAULT_HASH_SIZE = 64
 
-def generate_hash_vars(dim_size, window_size=500, bits=64):
-    bits = bits if bits else 64
+
+def generate_hash_vars(dim_size, window_size=1600, bits=64):
+    hash_size = bits if bits else DEFAULT_HASH_SIZE
     out_file = path.abspath(
-        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(bits) + ".p"))
+        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(hash_size) + ".p"))
 
     print("\n##################### HASH VARS #########################")
     if path.isfile(out_file):
@@ -31,7 +33,7 @@ def generate_hash_vars(dim_size, window_size=500, bits=64):
     print("Generating hash vars...")
 
     hash_vars = []
-    for i in range(bits):
+    for i in range(hash_size):
         a_i = np.expand_dims(np.random.normal(0, 1, dim_size), axis=0)
         b_i = np.random.uniform(0, window_size, 1)[0]
 
@@ -46,7 +48,7 @@ def generate_hash_vars(dim_size, window_size=500, bits=64):
     return hash_vars
 
 
-def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=500, bits=64):
+def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=1600, bits=64):
     print("\n##################### HASH MAPS #########################")
     hash_code_list = []
     counter = 0
