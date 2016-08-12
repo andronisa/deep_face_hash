@@ -3,6 +3,7 @@ try:
 except ImportError:
     import pickle
 
+import itertools
 import numpy as np
 from bson.binary import Binary
 from keras.optimizers import SGD
@@ -27,16 +28,11 @@ def deep_face_hash(window, hash_size=None, reset_db=False, existing_maps=False):
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(optimizer=sgd, loss='categorical_crossentropy')
 
-    (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db(
-        '/home/aandronis/scikit_learn_data/lfw_home/lfw/')
-
-    print("\nStarting Hashing...")
-    print("Total batches: " + str(img_options['n_batch']))
-    print("Images per batch: " + str(img_options['num_faces']))
-
     img_size = None
     crop_size = None
     color_mode = "rgb"
+    (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db(
+        '/home/aandronis/scikit_learn_data/lfw_home/lfw/')
 
     # careful!!
     if reset_db:
@@ -52,22 +48,30 @@ def deep_face_hash(window, hash_size=None, reset_db=False, existing_maps=False):
     hash_vars = generate_hash_vars(dim_size=feature_no, window_size=window, bits=hash_size)
 
     print("\n#################### CHUNK HANDLING ##########################")
+    print("\nStarting Hashing...")
+
     if existing_maps:
         print("Using Preprocessed Feature Maps...")
         feature_map_binaries = [item['feature_map'] for item in mongodb_find({}, {'feature_map': 1})]
 
         feature_maps = map(pickle.loads, feature_map_binaries)
         hash_codes = generate_hash_maps(feature_maps, hash_vars)
-        batch_list = zip(feature_map_binaries, hash_codes, chunked_targets,
-                         chunked_names)
+        targets = list(itertools.chain.from_iterable(chunked_targets))
+        names = list(itertools.chain.from_iterable(chunked_names))
+        batch_list = zip(feature_map_binaries, hash_codes, targets,
+                         names)
 
-        mongodb_store(batch_list)
+        mongodb_store(batch_list, hash_size)
 
-        del feature_maps
+        del targets
+        del names
         del hash_codes
+        del feature_maps
         del feature_map_binaries
         del batch_list
     else:
+        print("Total batches: " + str(img_options['n_batch']))
+        print("Images per batch: " + str(img_options['num_faces']))
         batch_counter = 0
         for img_paths in chunked_img_paths:
             print("Starting image batch no." + str(batch_counter + 1) + "\n")
@@ -97,6 +101,9 @@ def deep_face_hash(window, hash_size=None, reset_db=False, existing_maps=False):
 
             batch_counter += 1
 
+    del chunked_img_paths
+    del chunked_names
+    del chunked_targets
     print("\n##############################################")
     print("Finished creation of hashcodes")
     print("##############################################\n")
@@ -122,4 +129,4 @@ def calculate_mean_window_size():
 
 if __name__ == '__main__':
     mean_window_size = calculate_mean_window_size()
-    deep_face_hash(mean_window_size, reset_db=True, existing_maps=False)
+    deep_face_hash(mean_window_size, hash_size=64, reset_db=True, existing_maps=True)
