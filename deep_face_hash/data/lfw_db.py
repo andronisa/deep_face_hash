@@ -64,56 +64,6 @@ def load_lfw_db(data_fpath, n_batch=6):
     }
 
     return chunked_img_paths, chunked_targets, chunked_names, img_options
-    #
-    #
-    # def load_lfw_db():
-    #     print("\nCalling 'fetch_lfw_people' ... \n")
-    #     print("Brought them!")
-    #
-    #     return load
-    #     #
-    # # introspect the images arrays to find the shapes (for plotting)
-    # n_samples, h, w, rgb = lfw_people.images.shape
-    # first_img_dims = lfw_people.images[0].shape
-    # print(first_img_dims)
-    # exit()
-    # # print(lfw_people.shape)
-    # # print(lfw_people.images.shape)
-    # # print(lfw_people.images[0])
-    #
-    # # for machine learning we use the 2 data directly (as relative pixel
-    # # positions info is ignored by this model)
-    # X = lfw_people.images
-    #
-    # n_features = lfw_people.data.shape[1]
-    #
-    # # the label to predict is the id of the person
-    # y = lfw_people.target
-    # target_names = lfw_people.target_names
-    # n_classes = target_names.shape[0]
-    #
-    # print("Total dataset size:")
-    # print("n_samples: %d" % n_samples)
-    # print("n_features: %d" % n_features)
-    # print("n_classes: %d" % n_classes)
-    # print("n_target: %d" % len(np.unique(lfw_people['target'])))
-    # print("Image Sizes: {0}x{1}".format(h, w))
-    #
-    # class_name_no_pairs = dict(zip(target_names, np.unique(lfw_people['target'])))
-    # print(class_name_no_pairs)
-    # #
-    # # ###############################################################################
-    # # # Split into a training set and a test set using a stratified k fold
-    # #
-    # # # split into a training, validation and testing sets
-    # # x_train, X_test, Y_train, y_test = train_test_split(
-    # #     X, y, test_size=0.10, random_state=42)
-    # #
-    # # X_train, X_valid, y_train, y_valid = train_test_split(
-    # #     x_train, Y_train, test_size=0.25, random_state=42)
-    # #
-    # return lfw_people
-    # # return (X_train, X_valid, X_test), (y_train, y_valid, y_test), (h, w, rgb, n_classes)
 
 
 if __name__ == '__main__':
