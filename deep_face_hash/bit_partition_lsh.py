@@ -22,6 +22,7 @@ def generate_hash_vars(dim_size, window_size=500, bits=64):
     out_file = path.abspath(
         path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(bits) + ".p"))
 
+    print("\n##################### HASH VARS #########################")
     if path.isfile(out_file):
         print("Found hash vars. Loading...")
         return pickle.load(open(out_file, 'rb'))
@@ -45,6 +46,7 @@ def generate_hash_vars(dim_size, window_size=500, bits=64):
 
 
 def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=500, bits=64):
+    print("\n##################### HASH MAPS #########################")
     hash_code_list = []
     counter = 0
     for feat_map in feature_maps:
@@ -69,9 +71,10 @@ def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=500, bits=
 
         hash_code_list.append(''.join(hash_list))
         counter += 1
-        if counter % 100 == 0:
+        if counter % 500 == 0:
             print("Generated " + str(counter) + " hash codes")
 
+    print("Generated " + str(counter) + " total hash codes")
     return hash_code_list
 
 

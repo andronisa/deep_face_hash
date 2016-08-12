@@ -4,3 +4,4 @@
 !__init__.py
 !lfw_db.py
 !img_utils.py
+!storage.py

@@ -90,10 +90,13 @@ def generate_feature_maps(images, model):
         feature_maps.append(feature_map)
         counter += 1
 
-        if counter % 100 == 0:
-            print("Generated " + str(counter) + " feature maps.")
-            return feature_maps
+        if counter % 500 == 0:
+            print("Generated " + str(counter) + " feature maps")
+            #
+            # if counter % 1000 == 0:
+            #     return feature_maps
 
+    print("Generated " + str(counter) + " total feature maps")
     return feature_maps
 
 
