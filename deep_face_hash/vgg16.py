@@ -10,6 +10,7 @@ from keras.optimizers import SGD
 from models import DeepFaceHashSequential
 from alternative_hashing import dhash
 from data.img_utils import preprocess_images
+from utils import hamming_distance
 
 WEIGHTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "weights", "vgg16_weights.h5"))
 
@@ -74,6 +75,19 @@ def vgg_16(weights_path=None, h=224, w=224):
     return model
 
 
+def load_model():
+    print("Loading model...")
+
+    height = 250
+    width = 250
+
+    model = vgg_16(weights_path=WEIGHTS_PATH, h=height, w=width)
+    sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
+    model.compile(optimizer=sgd, loss='categorical_crossentropy')
+
+    return model
+
+
 def get_feature_no(img, model):
     img = np.expand_dims(img, axis=0)
     feature_map = model.predict(img)
@@ -94,8 +108,8 @@ def generate_feature_maps(images, model):
         if counter % 500 == 0:
             print("Generated " + str(counter) + " feature maps")
 
-        # if counter % 10 == 0:
-        #     return feature_maps
+            # if counter % 10 == 0:
+            #     return feature_maps
 
     print("Generated " + str(counter) + " total feature maps")
     return feature_maps
@@ -162,19 +176,13 @@ def test_hashing():
     # hash_code_7 = dhash(feature_map_7, hash_size=158)
     # hash_code_8 = dhash(feature_map_8, hash_size=158)
 
-    # print(hash_code_2)
-    def hamming(s1, s2):
-        """Calculate the Hamming distance between two bit strings"""
-        assert len(s1) == len(s2)
-        return sum(c1 != c2 for c1, c2 in zip(s1, s2))
+    print(hamming_distance(hash_code, hash_code_2))
+    print(hamming_distance(hash_code, hash_code_3))
+    print(hamming_distance(hash_code, hash_code_4))
 
-    print(hamming(hash_code, hash_code_2))
-    print(hamming(hash_code, hash_code_3))
-    print(hamming(hash_code, hash_code_4))
-
-    # print(hamming(hash_code_2, hash_code))
-    # print(hamming(hash_code_2, hash_code_3))
-    # print(hamming(hash_code_2, hash_code_4))
+    # print(hamming_distance(hash_code_2, hash_code))
+    # print(hamming_distance(hash_code_2, hash_code_3))
+    # print(hamming_distance(hash_code_2, hash_code_4))
 
     # print("\nLEVENSTEIN\n")
     # print(editdistance.eval(hash_code_3, hash_code))

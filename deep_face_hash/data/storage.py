@@ -45,21 +45,22 @@ def mongodb_store(faces, hash_size=None):
 
 def mongodb_find(query, fields, lim=None, hash_size=None):
     conn = MongoClient()
-
     collection, col_name = _get_collection_name(conn, hash_size)
-
     print("Find from collection: " + col_name)
+
     result = list(collection.find(query, fields).limit(lim)) if lim else list(collection.find(query, fields))
+
     conn.close()
 
     return result
 
 
 if __name__ == '__main__':
-    # "_id" : ObjectId("57ae0d75d90952065503309a"), "Name" : "Amer al-Saadi", "Target" : 224,
-    # "Hash Code" : "0010100001010011010010100011001100110011000111011010010000010001", "Feature Map"
+    # "_id", "name", "target", "hash_code" , "feature_map"
+
+    # Debug find
     q = {}
-    f = {'Feature Map': 1}
+    f = {'feature_map': 1}
     l = 1000
     res = mongodb_find(q, f, l)
     print(len(res))

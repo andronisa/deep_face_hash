@@ -14,28 +14,58 @@ except ImportError:
 
 import numpy as np
 import pickle
+
 from os import path
 from scipy.spatial.distance import euclidean, cosine
+from sklearn.metrics.pairwise import pairwise_distances
+
+from data.storage import mongodb_find
+from data.img_utils import preprocess_images
+from data.lfw_db import find_one
+from vgg16 import get_feature_no
+from utils import hamming_distance
 
 DEFAULT_HASH_SIZE = 64
 
 
-def generate_hash_vars(dim_size, window_size=1600, bits=64):
+def calculate_mean_window_size():
+    q = {}
+    f = {'feature_map': 1}
+    l = 1000
+
+    try:
+        feature_maps = np.array(map(pickle.loads, [item['feature_map'] for item in mongodb_find(q, f, l)]))
+        feat_maps = feature_maps.reshape(feature_maps.shape[0], feature_maps.shape[2])
+        distances = pairwise_distances(feat_maps)
+    except Exception as ex:
+        print("\nCould not calculate mean!!! " + ex.message + ". Getting default empirical value: 1600")
+        # Empirically from previous executions
+        return 1600
+
+    return int(np.mean(distances))
+
+
+def generate_hash_vars(model, bits=64):
+    window = calculate_mean_window_size()
+    img = preprocess_images([find_one()])[0]
+    dim_size = get_feature_no(img, model)
+
     hash_size = bits if bits else DEFAULT_HASH_SIZE
+
     out_file = path.abspath(
-        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window_size) + "_" + str(hash_size) + ".p"))
+        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window) + "_" + str(hash_size) + ".p"))
 
     print("\n##################### HASH VARS #########################")
     if path.isfile(out_file):
         print("Found hash vars. Loading...")
-        return pickle.load(open(out_file, 'rb'))
+        return pickle.load(open(out_file, 'rb')), window
 
     print("Generating hash vars...")
 
     hash_vars = []
     for i in range(hash_size):
         a_i = np.expand_dims(np.random.normal(0, 1, dim_size), axis=0)
-        b_i = np.random.uniform(0, window_size, 1)[0]
+        b_i = np.random.uniform(0, window, 1)[0]
 
         dim = {
             'a_i': a_i,
@@ -45,7 +75,7 @@ def generate_hash_vars(dim_size, window_size=1600, bits=64):
         hash_vars.append(dim)
 
     pickle.dump(hash_vars, open(out_file, 'wb'))
-    return hash_vars
+    return hash_vars, window
 
 
 def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=1600, bits=64):
@@ -95,15 +125,6 @@ def test_hashing():
 
     img_hash_list = generate_hash_maps(feat_map_list)
 
-    # for item in img_hash_list:
-    #     print item
-
-
-    def hamming2(s1, s2):
-        """Calculate the Hamming distance between two bit strings"""
-        assert len(s1) == len(s2)
-        return sum(c1 != c2 for c1, c2 in zip(s1, s2))
-
     print("\nEuclidean Distances\n")
     print(euclidean(vector, vector_2), 'Antonis - antonis diagonal')
     print(euclidean(vector, vector_3), 'Antonis - antonis side')
@@ -123,13 +144,13 @@ def test_hashing():
     # print(cosine(vector, vector_8), 'Antonis - napo')
 
     print("\nHamming distances\n")
-    print(hamming2(img_hash_list[0], img_hash_list[1]), 'Antonis - antonis diagonal')
-    print(hamming2(img_hash_list[0], img_hash_list[2]), 'Antonis - antonis side')
-    print(hamming2(img_hash_list[0], img_hash_list[3]), 'Antonis - Nicola')
-    print(hamming2(img_hash_list[0], img_hash_list[4]), 'Antonis - elina face')
-    print(hamming2(img_hash_list[0], img_hash_list[5]), 'Antonis - elina side')
-    print(hamming2(img_hash_list[0], img_hash_list[6]), 'Antonis - nikos')
-    print(hamming2(img_hash_list[0], img_hash_list[7]), 'Antonis - napo ')
+    print(hamming_distance(img_hash_list[0], img_hash_list[1]), 'Antonis - antonis diagonal')
+    print(hamming_distance(img_hash_list[0], img_hash_list[2]), 'Antonis - antonis side')
+    print(hamming_distance(img_hash_list[0], img_hash_list[3]), 'Antonis - Nicola')
+    print(hamming_distance(img_hash_list[0], img_hash_list[4]), 'Antonis - elina face')
+    print(hamming_distance(img_hash_list[0], img_hash_list[5]), 'Antonis - elina side')
+    print(hamming_distance(img_hash_list[0], img_hash_list[6]), 'Antonis - nikos')
+    print(hamming_distance(img_hash_list[0], img_hash_list[7]), 'Antonis - napo ')
 
 
 if __name__ == '__main__':

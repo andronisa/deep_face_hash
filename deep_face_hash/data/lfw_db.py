@@ -5,13 +5,13 @@ from __future__ import absolute_import
 import numpy as np
 
 from os.path import join, isdir
-from os import listdir
+from os import listdir, walk
 
 
 # from sklearn.datasets import fetch_lfw_people
 
 
-def load_lfw_db(data_fpath, n_batch=6):
+def load_lfw_db(data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', n_batch=6):
     height = 250
     width = 250
 
@@ -66,5 +66,19 @@ def load_lfw_db(data_fpath, n_batch=6):
     return chunked_img_paths, chunked_targets, chunked_names, img_options
 
 
+def load_images(data_fpath):
+    paths = []
+    for root, dirs, file_names in walk(data_fpath):
+        for file_name in file_names:
+            paths.append(join(root, file_name))
+    return paths
+
+
+def find_one(data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/'):
+    folder_path = join(data_fpath, sorted(listdir(data_fpath))[0])
+    return join(folder_path, listdir(folder_path)[0])
+
+
 if __name__ == '__main__':
-    lfw_people = load_lfw_db('/home/aandronis/scikit_learn_data/lfw_home/lfw/', color_mode='rgb')
+    # lfw_people = load_lfw_db('/home/aandronis/scikit_learn_data/lfw_home/lfw/')
+    print(find_one())
