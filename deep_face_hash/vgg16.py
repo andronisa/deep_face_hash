@@ -11,6 +11,9 @@ from models import DeepFaceHashSequential
 from alternative_hashing import dhash
 from data.img_utils import preprocess_images
 from utils import hamming_distance
+from data.storage import mongodb_store, clear_collection
+from data.lfw_db import load_lfw_db
+from utils import arr_to_binary
 
 WEIGHTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "weights", "vgg16_weights.h5"))
 
@@ -103,15 +106,24 @@ def generate_feature_maps(images, model):
         img = np.expand_dims(img, axis=0)
         feature_map = model.predict(img)
         feature_maps.append(feature_map)
+        del feature_map
+
         counter += 1
 
         if counter % 500 == 0:
             print("Generated " + str(counter) + " feature maps")
 
             # if counter % 10 == 0:
+            #     print("Storing Feature Maps to Mongo...")
+            #     mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
             #     return feature_maps
 
     print("Generated " + str(counter) + " total feature maps")
+
+    # Storing to mongo
+    print("Storing Feature Maps to Mongo...")
+    mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
+
     return feature_maps
 
 
@@ -193,5 +205,26 @@ def test_hashing():
     # print(editdistance.eval(hash_code_4, hash_code_2))
 
 
+def test_feature_map_generation_and_storage():
+    clear_collection('feature_maps')
+    print("testing feat map generation and storage...")
+    (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db()
+    lfw_model = load_model()
+
+    batch_counter = 0
+    for img_paths in chunked_img_paths:
+        print("Starting image batch no." + str(batch_counter + 1) + "\n")
+        print("Preprocessing Images...")
+
+        preprocessed_images = preprocess_images(img_paths.tolist(), img_options=img_options)
+        feature_maps = generate_feature_maps(preprocessed_images, lfw_model)
+
+        print(len(feature_maps))
+        del(preprocessed_images, feature_maps)
+
+        batch_counter += 1
+
+
 if __name__ == '__main__':
-    test_hashing()
+    # test_hashing()
+    test_feature_map_generation_and_storage()

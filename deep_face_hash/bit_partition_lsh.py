@@ -29,24 +29,23 @@ DEFAULT_HASH_SIZE = 64
 
 
 def calculate_mean_window_size():
-    q = {}
-    f = {'feature_map': 1}
-    l = 1000
-
     try:
-        feature_maps = np.array(map(pickle.loads, [item['feature_map'] for item in mongodb_find(q, f, l)]))
+        feature_maps = np.array(
+            map(pickle.loads, [item['feature_map'] for item in mongodb_find({}, {'feature_map': 1}, 'feature_maps')]))
         feat_maps = feature_maps.reshape(feature_maps.shape[0], feature_maps.shape[2])
         distances = pairwise_distances(feat_maps)
+        mean_distance = int(np.mean(distances))
+
+        del (feature_maps, feat_maps, distances)
+
+        return mean_distance
     except Exception as ex:
         print("\nCould not calculate mean!!! " + ex.message + ". Getting default empirical value: 1600")
         # Empirically from previous executions
         return 1600
 
-    return int(np.mean(distances))
 
-
-def generate_hash_vars(model, bits=64):
-    window = calculate_mean_window_size()
+def generate_hash_vars(model, window, bits=64):
     img = preprocess_images([find_one()])[0]
     dim_size = get_feature_no(img, model)
 
@@ -154,4 +153,5 @@ def test_hashing():
 
 
 if __name__ == '__main__':
-    test_hashing()
+    # test_hashing()
+    calculate_mean_window_size()

@@ -30,9 +30,9 @@ def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rg
             img[:, :, [0, 1, 2]] = img[:, :, [2, 1, 0]]
 
         # We normalize the colors with the empirical means on the training set
-        # img[:, :, 0] -= 123.68
-        # img[:, :, 1] -= 116.779
-        # img[:, :, 2] -= 103.939
+        img[:, :, 0] -= 123.68
+        img[:, :, 1] -= 116.779
+        img[:, :, 2] -= 103.939
 
         img = img.transpose((2, 0, 1))
 

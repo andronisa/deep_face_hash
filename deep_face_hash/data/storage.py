@@ -1,20 +1,20 @@
+import numpy as np
+
 from pymongo import MongoClient
 from pprint import pprint
 
 
-def _get_collection_name(conn, hash_size=None):
-    if hash_size:
+def _get_collection_name(conn, collection=None):
+    if collection:
         db = conn.deep_face_hash
-        name = str(hash_size) + "_bit"
-
-        return db[name], name
+        return db[collection], collection
     return conn.test_database.random_arrays, "random_arrays"
 
 
-def clear_collection(hash_size=None):
+def clear_collection(col_name=None):
     conn = MongoClient()
 
-    collection, col_name = _get_collection_name(conn, hash_size)
+    collection, col_name = _get_collection_name(conn, col_name)
 
     print("Clearing Mongo Collection: " + col_name)
     collection.remove()
@@ -23,32 +23,41 @@ def clear_collection(hash_size=None):
     return True
 
 
-def mongodb_store(faces, hash_size=None):
+def mongodb_store(items, keys=list(), collection=''):
     print("\n#################### MONGO INSERTION ##########################")
     conn = MongoClient()
 
-    collection, col_name = _get_collection_name(conn, hash_size)
-    bulk = collection.initialize_unordered_bulk_op()
+    mongo_collection, col_name = _get_collection_name(conn, collection)
+    bulk = mongo_collection.initialize_unordered_bulk_op()
 
-    face_keys = ['feature_map', 'hash_code', 'target', 'name']
-    for face in faces:
-        face = list(face)
-        bulk.insert(dict(zip(face_keys, face)))
+    for item in items:
+        if isinstance(item, tuple):
+            to_insert = dict(zip(keys, list(item)))
+        elif isinstance(item, list):
+            to_insert = dict(zip(keys, item))
+        else:
+            to_insert = dict(zip(keys, [item]))
+
+        bulk.insert(to_insert)
+        del (item, to_insert)
 
     print("Inserting to collection: " + col_name)
     result = bulk.execute()
     pprint(result)
+
+    del (items, bulk)
     conn.close()
 
     return True
 
 
-def mongodb_find(query, fields, lim=None, hash_size=None):
+def mongodb_find(query, fields, lim=None, collection=None):
     conn = MongoClient()
-    collection, col_name = _get_collection_name(conn, hash_size)
+    mongo_collection, col_name = _get_collection_name(conn, collection)
     print("Find from collection: " + col_name)
 
-    result = list(collection.find(query, fields).limit(lim)) if lim else list(collection.find(query, fields))
+    result = list(mongo_collection.find(query, fields).limit(lim)) if lim else list(
+        mongo_collection.find(query, fields))
 
     conn.close()
 
