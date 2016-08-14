@@ -30,14 +30,29 @@ DEFAULT_HASH_SIZE = 64
 
 def calculate_mean_window_size():
     try:
+        out_file = path.abspath(
+            path.join(path.dirname(__file__), "data", "mean_distance" + ".p"))
+
+        if path.isfile(out_file):
+            print("Found mean distance file. Loading...")
+            return pickle.load(open(out_file, 'rb'))
+
+        print("\nCalculating mean window size...")
+
         feature_maps = np.array(
-            map(pickle.loads, [item['feature_map'] for item in mongodb_find({}, {'feature_map': 1}, 'feature_maps')]))
+            map(pickle.loads,
+                [item['feature_map'] for item in mongodb_find({}, {'feature_map': 1}, None, 'feature_maps')]))
         feat_maps = feature_maps.reshape(feature_maps.shape[0], feature_maps.shape[2])
         distances = pairwise_distances(feat_maps)
         mean_distance = int(np.mean(distances))
 
-        del (feature_maps, feat_maps, distances)
+        del feature_maps
+        del feat_maps
+        del distances
 
+        pickle.dump(mean_distance, open(out_file, "wb"))
+
+        print("Mean distance calculation finished: " + mean_distance)
         return mean_distance
     except Exception as ex:
         print("\nCould not calculate mean!!! " + ex.message + ". Getting default empirical value: 1600")
@@ -57,7 +72,7 @@ def generate_hash_vars(model, window, bits=64):
     print("\n##################### HASH VARS #########################")
     if path.isfile(out_file):
         print("Found hash vars. Loading...")
-        return pickle.load(open(out_file, 'rb')), window
+        return pickle.load(open(out_file, 'rb'))
 
     print("Generating hash vars...")
 
@@ -74,7 +89,7 @@ def generate_hash_vars(model, window, bits=64):
         hash_vars.append(dim)
 
     pickle.dump(hash_vars, open(out_file, 'wb'))
-    return hash_vars, window
+    return hash_vars
 
 
 def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=1600, bits=64):

@@ -17,7 +17,7 @@ def clear_collection(col_name=None):
     collection, col_name = _get_collection_name(conn, col_name)
 
     print("Clearing Mongo Collection: " + col_name)
-    collection.remove()
+    collection.drop()
     conn.close()
 
     return True
@@ -39,14 +39,17 @@ def mongodb_store(items, keys=list(), collection=''):
             to_insert = dict(zip(keys, [item]))
 
         bulk.insert(to_insert)
-        del (item, to_insert)
+        del item
+        del to_insert
 
     print("Inserting to collection: " + col_name)
     result = bulk.execute()
     pprint(result)
 
-    del (items, bulk)
     conn.close()
+
+    del items
+    del bulk
 
     return True
 

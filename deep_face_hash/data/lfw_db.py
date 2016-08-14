@@ -54,7 +54,7 @@ def load_lfw_db(data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', n_
     chunked_img_paths = np.array_split(file_paths, n_batch)
     chunked_targets = np.array_split(target, n_batch)
     chunked_names = np.array_split(person_names, n_batch)
-    batch_size = chunked_img_paths[0].shape[0]
+    batch_size = [item.shape[0] for item in chunked_img_paths]
 
     img_options = {
         'height': height,

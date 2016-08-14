@@ -8,15 +8,13 @@ def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rg
     if img_options:
         height = img_options['height']
         width = img_options['width']
-        num_faces = img_options['num_faces']
         rgb = 3 if color_mode == 'rgb' else None
     else:
         height = 250
         width = 250
-        num_faces = 1
         rgb = 3
 
-    images = np.zeros((num_faces, rgb, height, width), dtype=np.float32)
+    images = np.zeros((len(image_paths), rgb, height, width), dtype=np.float32)
 
     counter = 0
     for image_path in image_paths:

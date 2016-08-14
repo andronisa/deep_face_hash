@@ -98,10 +98,11 @@ def get_feature_no(img, model):
     return feature_map.shape[1]
 
 
-def generate_feature_maps(images, model):
-    print("Generating Feature Maps...")
+def generate_feature_maps(images, model, insert=True):
+    print("\nGenerating Feature Maps...")
     feature_maps = []
     counter = 0
+
     for img in images:
         img = np.expand_dims(img, axis=0)
         feature_map = model.predict(img)
@@ -113,16 +114,11 @@ def generate_feature_maps(images, model):
         if counter % 500 == 0:
             print("Generated " + str(counter) + " feature maps")
 
-            # if counter % 10 == 0:
-            #     print("Storing Feature Maps to Mongo...")
-            #     mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
-            #     return feature_maps
-
     print("Generated " + str(counter) + " total feature maps")
 
-    # Storing to mongo
-    print("Storing Feature Maps to Mongo...")
-    mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
+    if insert:
+        # Storing to mongo
+        mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
 
     return feature_maps
 
@@ -207,8 +203,9 @@ def test_hashing():
 
 def test_feature_map_generation_and_storage():
     clear_collection('feature_maps')
-    print("testing feat map generation and storage...")
-    (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db()
+    print("Testing feat map generation and storage...")
+    (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db(
+        data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/')
     lfw_model = load_model()
 
     batch_counter = 0
@@ -219,12 +216,13 @@ def test_feature_map_generation_and_storage():
         preprocessed_images = preprocess_images(img_paths.tolist(), img_options=img_options)
         feature_maps = generate_feature_maps(preprocessed_images, lfw_model)
 
-        print(len(feature_maps))
-        del(preprocessed_images, feature_maps)
+        del preprocessed_images
+        del feature_maps
 
         batch_counter += 1
 
 
 if __name__ == '__main__':
+    print("Choose a function to act")
     # test_hashing()
-    test_feature_map_generation_and_storage()
+    # test_feature_map_generation_and_storage()
