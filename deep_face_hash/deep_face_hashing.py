@@ -11,7 +11,7 @@ from data.lfw_db import load_lfw_db, load_images
 from data.storage import mongodb_store, mongodb_find, clear_collection
 from bit_partition_lsh import generate_hash_maps, generate_hash_vars, calculate_mean_window_size
 from vgg16 import generate_feature_maps, load_model
-from utils import top_n_closer_vecs, top_n_closer_hash_codes, top_n_hamm_hash_codes
+from utils import top_n_closer_vecs, top_n_closer_hash_codes, top_n_hamm_hash_codes, find_common_in_lists
 
 
 def hash_lfw(fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', window_size=None, hash_size=None, reset_db=False,
@@ -98,50 +98,60 @@ def hash_lfw(fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', window_siz
     return True
 
 
-def deep_face_hashing(fpath):
+def deep_face_hashing(fpath, print_names=False):
     window_size = calculate_mean_window_size() * 2
     bit_sizes = [64, 128, 256, 512]
     show_top_vecs = True
 
     print("\nStarting deep face hashing of a new image")
+    print("\n##################### INITIALIZE MODEL #########################")
+    lfw_model = load_model()
+
+    feat_map_collection = "feature_maps"
+    img_paths = load_images(fpath)
+    preprocessed_images = preprocess_images(img_paths, img_size=(250, 250))
+    feature_maps = np.array(generate_feature_maps(preprocessed_images, lfw_model, insert=False))
+    lfw_feat_maps = np.array(map(pickle.loads,
+                                 [item['feature_map'] for item in
+                                  mongodb_find({}, {'feature_map': 1}, None, collection=feat_map_collection)]))
+    lfw_feat_maps = lfw_feat_maps.reshape(lfw_feat_maps.shape[0], lfw_feat_maps.shape[2])
 
     for hash_size in bit_sizes:
-        print("\n##################### INITIALIZE MODEL #########################")
-        lfw_model = load_model()
-
-        # compute one feature map to get dimensionality
-        hash_vars = generate_hash_vars(model=lfw_model, window=window_size, bits=hash_size)
-
         # careful!!
         print("\n##################### DATABASE SETUP #########################")
         col_name = "_".join(("hash_maps", str(window_size), str(hash_size), "bit"))
-        feat_map_collection = "feature_maps"
 
-        img_paths = load_images(fpath)
-        preprocessed_images = preprocess_images(img_paths, img_size=(250, 250))
-        feature_maps = np.array(generate_feature_maps(preprocessed_images, lfw_model, insert=False))
+        # compute one feature map to get dimensionality
+        hash_vars = generate_hash_vars(model=lfw_model, window=window_size, bits=hash_size)
         hash_codes = generate_hash_maps(feature_maps, hash_vars, window_size, hash_size)
         names = np.array([item['name'] for item in mongodb_find({}, {'name': 1}, None, collection=col_name)])
         lfw_hash_maps = [item['hash_code'] for item in mongodb_find({}, {'hash_code': 1}, None, collection=col_name)]
-        lfw_feat_maps = np.array(map(pickle.loads,
-                                     [item['feature_map'] for item in
-                                      mongodb_find({}, {'feature_map': 1}, None, collection=feat_map_collection)]))
-        lfw_feat_maps = lfw_feat_maps.reshape(lfw_feat_maps.shape[0], lfw_feat_maps.shape[2])
 
         if show_top_vecs:
             for feature_map in feature_maps:
                 closest_indices = top_n_closer_vecs(lfw_feat_maps, feature_map, 10)
-                print("\nTop 10 similar persons using feature map vectors: ")
+                print("\nTop 10 similar persons using feature map vectors:\n")
+
+                top_ten_vecs = []
                 for index in closest_indices:
-                    print(names[index])
+                    top_ten_vecs.append(names[index])
+                    if print_names:
+                        print(names[index])
             show_top_vecs = False
 
         for hash_code in hash_codes:
             closest_indices = top_n_hamm_hash_codes(hash_code, lfw_hash_maps, 10)
             print("\nFor window size of: " + str(window_size) + " and hash size of: " + str(hash_size))
-            print("\nTop 10 similar persons using hashmaps: ")
+            print("Top 10 similar persons using hashmaps:\n")
+
+            top_ten_hashes = []
             for index in closest_indices:
-                print(names[index])
+                top_ten_hashes.append(names[index])
+                if print_names:
+                    print(names[index])
+
+            n_common = find_common_in_lists(top_ten_vecs, top_ten_hashes)
+            print("\nTotal common in top 10: " + str(n_common))
 
     return True
 
@@ -167,5 +177,5 @@ if __name__ == '__main__':
     # hash_lfw(fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', window_size=win_size, hash_size=64,
     #          reset_db=True,
     #          existing_maps=False)
-    # deep_face_hashing(fpath='/home/aandronis/projects/deep_face_hash/deep_face_hash/data/img/test/')
+    # deep_face_hashing(fpath='/home/aandronis/projects/deep_face_hash/deep_face_hash/data/img/test/', print_names=False)
     generate_multiple_hash_map_collections()

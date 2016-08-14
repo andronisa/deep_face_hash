@@ -5,9 +5,14 @@ except ImportError:
 
 import numpy as np
 
+from collections import Counter as mset
 from bson.binary import Binary
 from sklearn.metrics.pairwise import pairwise_distances
 
+
+def find_common_in_lists(list_1, list_2):
+    intersection = mset(list_1) & mset(list_2)
+    return len(list(intersection.elements()))
 
 def arr_to_binary(np_arr):
     return Binary(pickle.dumps(np_arr, protocol=2))
