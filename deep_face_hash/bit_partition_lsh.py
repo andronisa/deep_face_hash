@@ -15,7 +15,7 @@ except ImportError:
 import numpy as np
 import pickle
 
-from os import path
+from os import path, makedirs
 from scipy.spatial.distance import euclidean, cosine
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -61,13 +61,18 @@ def calculate_mean_window_size():
 
 
 def generate_hash_vars(model, window, bits=64):
-    img = preprocess_images([find_one()])[0]
+    img = preprocess_images([find_one()], img_size=(224, 224))[0]
     dim_size = get_feature_no(img, model)
 
     hash_size = bits if bits else DEFAULT_HASH_SIZE
 
-    out_file = path.abspath(
-        path.join(path.dirname(__file__), "data", "hash_vars_" + str(window) + "_" + str(hash_size) + ".p"))
+    fpath = path.abspath(
+        path.join(path.dirname(__file__), "data", 'hash_vars'))
+
+    if not path.exists(fpath):
+        makedirs(fpath)
+
+    out_file = path.join(fpath, "hash_vars_" + str(window) + "_" + str(hash_size) + ".p")
 
     print("\n##################### HASH VARS #########################")
     if path.isfile(out_file):
@@ -94,16 +99,22 @@ def generate_hash_vars(model, window, bits=64):
 
 def generate_hash_maps(feature_maps=None, hash_vars=None, window_size=1600, bits=64):
     print("\n##################### HASH MAPS #########################")
+
     hash_code_list = []
     counter = 0
+
     for feat_map in feature_maps:
         hash_list = []
 
         for i in range(bits):
             a_i = hash_vars[i]['a_i']
             b_i = hash_vars[i]['b_i']
+
+            # # Debug
             # print(a_i.shape)
-            # print(p_i.shape)
+            # print(b_i.shape)
+            # print(a_i)
+            # print(b_i)
 
             inner_product_ai_p = np.inner(feat_map, a_i)[0][0]
             # print(inner_product_ai_p)

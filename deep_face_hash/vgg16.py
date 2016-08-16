@@ -225,4 +225,4 @@ def test_feature_map_generation_and_storage():
 if __name__ == '__main__':
     print("Choose a function to act")
     # test_hashing()
-    test_feature_map_generation_and_storage()
+    # test_feature_map_generation_and_storage()

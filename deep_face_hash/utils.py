@@ -14,6 +14,7 @@ def find_common_in_lists(list_1, list_2):
     intersection = mset(list_1) & mset(list_2)
     return list(intersection.elements())
 
+
 def arr_to_binary(np_arr):
     return Binary(pickle.dumps(np_arr, protocol=2))
 
