@@ -81,8 +81,8 @@ def vgg_16(weights_path=None, h=224, w=224):
 def load_model():
     print("Loading model...")
 
-    height = 250
-    width = 250
+    height = 224
+    width = 224
 
     model = vgg_16(weights_path=WEIGHTS_PATH, h=height, w=width)
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
@@ -124,8 +124,8 @@ def generate_feature_maps(images, model, insert=True):
 
 
 def test_hashing():
-    height = 250
-    width = 250
+    height = 224
+    width = 224
 
     im = preprocess_images(['data/img/tony_1.jpg'], img_size=(height, width), color_mode='rgb')
     im2 = preprocess_images(['data/img/tony_2.jpg'], img_size=(height, width), color_mode='rgb')
@@ -213,7 +213,7 @@ def test_feature_map_generation_and_storage():
         print("Starting image batch no." + str(batch_counter + 1) + "\n")
         print("Preprocessing Images...")
 
-        preprocessed_images = preprocess_images(img_paths.tolist(), img_options=img_options)
+        preprocessed_images = preprocess_images(img_paths.tolist(), img_size=(224, 224), img_options=img_options)
         feature_maps = generate_feature_maps(preprocessed_images, lfw_model)
 
         del preprocessed_images
@@ -225,4 +225,4 @@ def test_feature_map_generation_and_storage():
 if __name__ == '__main__':
     print("Choose a function to act")
     # test_hashing()
-    # test_feature_map_generation_and_storage()
+    test_feature_map_generation_and_storage()

@@ -12,8 +12,8 @@ from os import listdir, walk
 
 
 def load_lfw_db(data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', n_batch=6):
-    height = 250
-    width = 250
+    height = 224
+    width = 224
 
     # for person_dir in sorted(listdir(data_fpath)):
     person_names, file_paths = [], []
