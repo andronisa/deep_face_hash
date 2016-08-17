@@ -17,11 +17,16 @@ from utils import top_n_closer_vecs, top_n_closer_hash_codes, top_n_hamm_hash_co
 def hash_lfw(fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', reset_db=False,
              existing_maps=False):
 
-    bit_sizes = [64, 128, 256, 512, 1024, 2048, 4096]
+    bit_sizes = [2048, 4096]
 
-    min_window_size = 2800
-    max_window_size = 5000
+    # min_window_size = 2800
+    # max_window_size = 5000
+    min_window_size = 1200
+    max_window_size = 2000
     step = 100
+
+    # Window 100-1000 --> bitsizes [64, 128, 256, 512, 1024]
+    # Window 1000 - 2700 --- bitsizes [64, 128, 256, 512, 1024, 2048, 4096]
 
     # Current ---> 2700 for all
     # max_window_size+step is to include end (max_window_size)
@@ -108,9 +113,12 @@ def hash_lfw(fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/', reset_db=F
 
 
 def deep_face_hashing(fpath, print_names=False):
-    bit_sizes = [64, 128, 256, 512, 1024]
-    # bit_sizes = [128]
     show_top_vecs = True
+    # bit_sizes = [64, 128, 256, 512, 1024, 2048, 4096]
+    bit_sizes = [2048]
+    min_window_size = 100
+    max_window_size = 100
+    step = 100
 
     print("\nStarting deep face hashing of a new image")
     print("\n##################### INITIALIZE MODEL #########################")
@@ -125,7 +133,7 @@ def deep_face_hashing(fpath, print_names=False):
                                   mongodb_find({}, {'feature_map': 1}, None, collection=feat_map_collection)]))
     lfw_feat_maps = lfw_feat_maps.reshape(lfw_feat_maps.shape[0], lfw_feat_maps.shape[2])
 
-    for window_size in range(100, 2100, 100):
+    for window_size in range(min_window_size, max_window_size + step, step):
         for hash_size in bit_sizes:
             # careful!!
             # print("\n##################### DATABASE SETUP #########################")
