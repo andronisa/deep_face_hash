@@ -1,4 +1,5 @@
 import os
+import cv2
 import pickle
 import editdistance
 import numpy as np
@@ -98,7 +99,7 @@ def get_feature_no(img, model):
     return feature_map.shape[1]
 
 
-def generate_feature_maps(images, model, insert=True):
+def generate_feature_maps(images, model, names, insert=False):
     print("\nGenerating Feature Maps...")
     feature_maps = []
     counter = 0
@@ -110,7 +111,6 @@ def generate_feature_maps(images, model, insert=True):
         del feature_map
 
         counter += 1
-
         if counter % 500 == 0:
             print("Generated " + str(counter) + " feature maps")
 
@@ -118,7 +118,7 @@ def generate_feature_maps(images, model, insert=True):
 
     if insert:
         # Storing to mongo
-        mongodb_store(map(arr_to_binary, feature_maps), keys=['feature_map'], collection='feature_maps')
+        mongodb_store(zip(map(arr_to_binary, feature_maps), names.tolist()), keys=['feature_map', 'name'], collection='feature_maps_final')
 
     return feature_maps
 
@@ -202,7 +202,7 @@ def test_hashing():
 
 
 def test_feature_map_generation_and_storage():
-    clear_collection('feature_maps')
+    clear_collection('feature_maps_final')
     print("Testing feat map generation and storage...")
     (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db(
         data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/')
@@ -213,8 +213,9 @@ def test_feature_map_generation_and_storage():
         print("Starting image batch no." + str(batch_counter + 1) + "\n")
         print("Preprocessing Images...")
 
+        names = chunked_names[batch_counter]
         preprocessed_images = preprocess_images(img_paths.tolist(), img_size=(224, 224), img_options=img_options)
-        feature_maps = generate_feature_maps(preprocessed_images, lfw_model)
+        feature_maps = generate_feature_maps(preprocessed_images, lfw_model, names, insert=True)
 
         del preprocessed_images
         del feature_maps
@@ -225,4 +226,4 @@ def test_feature_map_generation_and_storage():
 if __name__ == '__main__':
     print("Choose a function to act")
     # test_hashing()
-    # test_feature_map_generation_and_storage()
+    test_feature_map_generation_and_storage()

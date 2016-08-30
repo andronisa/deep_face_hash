@@ -6,6 +6,7 @@ except ImportError:
 import numpy as np
 
 from collections import Counter as mset
+from collections import defaultdict
 from bson.binary import Binary
 from sklearn.metrics.pairwise import pairwise_distances
 
@@ -25,15 +26,31 @@ def hamming_distance(s1, s2):
     return sum(c1 != c2 for c1, c2 in zip(s1, s2))
 
 
+def nested_dict_from_two_list_combinations(list_1, list_2):
+    nested_dict = defaultdict(list) 
+    for k,v in list(itertools.product(list_1 , list_2)):
+        nested_dict[k].append({v:0})
+
+    return nested_dict
+
+
+def nested_dict_from_three_list_combinations(list_1, list_2, list_3):
+    nested_dict = defaultdict(lambda:defaultdict(list))
+    for k1, k2, v in list(itertools.product(list_1 , list_2, list_3):
+        nested_dict[k1][k2].append({v:0})
+
+    return nested_dict
+
+
 def top_n_hamm_hash_codes(s1, list_s, top_n):
     distances = np.array([hamming_distance(s1, s) for s in list_s])
     distances = np.append(distances, [])
 
     # Sort the distances by value(smaller first) and keep the 10 first
     ten_smallest_indices = distances.argsort()[:top_n]
-    print("")
-    for index in ten_smallest_indices:
-        print(distances[index])
+    # print("")
+    # for index in ten_smallest_indices:
+    #     print(distances[index])
 
     return ten_smallest_indices
 
@@ -62,9 +79,9 @@ def top_n_closer_vecs(v1, v2, top_n=10, chosen_metric='euclidean'):
 
     # Sort the distances by value(smaller first) and keep the 10 first
     ten_smallest_indices = distances.argsort()[:top_n]
-    print("")
-    for index in ten_smallest_indices:
-        print(distances[index])
+    # print("")
+    # for index in ten_smallest_indices:
+    #     print(distances[index])
 
     return ten_smallest_indices
 

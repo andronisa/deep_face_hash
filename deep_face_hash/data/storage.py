@@ -54,10 +54,11 @@ def mongodb_store(items, keys=list(), collection=''):
     return True
 
 
-def mongodb_find(query, fields, lim=None, collection=None):
+def mongodb_find(query, fields, lim=None, collection=None, pp=True):
     conn = MongoClient()
     mongo_collection, col_name = _get_collection_name(conn, collection)
-    print("Find from collection: " + col_name)
+    if pp:
+        print("Find from collection: " + col_name)
 
     result = list(mongo_collection.find(query, fields).limit(lim)) if lim else list(
         mongo_collection.find(query, fields))

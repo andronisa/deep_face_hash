@@ -5,21 +5,22 @@ from scipy.misc import imread
 
 
 def viola_jones(img):
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    face_cascade = cv2.CascadeClassifier('/home/aandronis/projects/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    faces = face_cascade.detectMultiScale(gray)
 
-    for (x, y, w, h) in faces:
-        img = cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    # Get the matrix and put zeros around
+    for (x,y,w,h) in faces:
+        return img[y:y+h,x:x+w]
+        # # Debug
+        # cv2.imshow('img',img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
-    # # Debug
-    # cv2.imshow('img',img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
     return img
 
 
-def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rgb", img_options=None):
+def preprocess_images(image_paths, img_size=(224, 224), crop_size=None, color_mode="rgb", img_options=None):
     if img_options:
         height = img_options['height']
         width = img_options['width']
@@ -33,12 +34,12 @@ def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rg
 
     counter = 0
     for image_path in image_paths:
-        img = imread(image_path, mode='RGB')
+        img = cv2.imread(image_path)
+    
+        img = viola_jones(img)
 
         if img_size:
             img = cv2.resize(img, img_size)
-
-        # img = viola_jones(img)
 
         img = img.astype('float32')
         # We permute the colors to get them in the BGR order
@@ -56,7 +57,9 @@ def preprocess_images(image_paths, img_size=None, crop_size=None, color_mode="rg
             img = img[:, (img_size[0] - crop_size[0]) // 2:(img_size[0] + crop_size[0]) // 2
             , (img_size[1] - crop_size[1]) // 2:(img_size[1] + crop_size[1]) // 2]
 
+
         images[counter, ...] = img
         counter += 1
+
 
     return images
