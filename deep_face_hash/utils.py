@@ -5,6 +5,7 @@ except ImportError:
 
 import numpy as np
 
+import itertools
 from collections import Counter as mset
 from collections import defaultdict
 from bson.binary import Binary
@@ -36,7 +37,7 @@ def nested_dict_from_two_list_combinations(list_1, list_2):
 
 def nested_dict_from_three_list_combinations(list_1, list_2, list_3):
     nested_dict = defaultdict(lambda:defaultdict(list))
-    for k1, k2, v in list(itertools.product(list_1 , list_2, list_3):
+    for k1, k2, v in list(itertools.product(list_1 , list_2, list_3)):
         nested_dict[k1][k2].append({v:0})
 
     return nested_dict
