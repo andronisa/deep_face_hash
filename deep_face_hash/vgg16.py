@@ -202,7 +202,7 @@ def test_hashing():
 
 
 def test_feature_map_generation_and_storage():
-    clear_collection('feature_maps_final')
+    # clear_collection('feature_maps')
     print("Testing feat map generation and storage...")
     (chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db(
         data_fpath='/home/aandronis/scikit_learn_data/lfw_home/lfw/')

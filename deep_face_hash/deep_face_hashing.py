@@ -1,13 +1,13 @@
 from __future__ import division
-try:
-	import cPickle as pickle
-except ImportError:
-	import pickle
+import dill
+import pickle
 
 import itertools
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 
+from os import path
 from data.img_utils import preprocess_images
 from data.lfw_db import load_lfw_db, load_images
 from data.storage import mongodb_store, mongodb_find, clear_collection
@@ -203,7 +203,6 @@ def batch_test_lfw_hashes(print_names=True):
 	feat_map_index = 0
 	for feat_map in lfw_feat_maps:
 		if feat_map_index in indices_to_avoid:
-			print("I'm avoiding - " + str(feat_map_index))
 			feat_map_index += 1
 			continue
 		new_feat_maps = lfw_feat_maps
@@ -287,13 +286,14 @@ def top_result_accuracy():
 	accurate = 0
 	start_time = time.time()
 	bit_sizes = [64, 256, 1024, 4096]
-	window_sizes = [2200]
+	window_sizes = [2200, 2400, 2600, 2800, 3000]
 	show_top_vecs = True
-	test_size = 1
+	test_size = 100
 
 	accuracies = nested_dict_from_two_list_combinations(window_sizes, bit_sizes)
 
 	(chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db()
+	paths = list(itertools.chain.from_iterable(chunked_img_paths))
 	names = np.array(list(itertools.chain.from_iterable(chunked_names)))
 	vals, indices, count = np.unique(names, return_counts = True, return_index=True)
 	indices_to_avoid = indices[count == 1]
@@ -303,7 +303,7 @@ def top_result_accuracy():
 	del chunked_targets
 	del chunked_names
 
-	feat_map_collection = "feature_maps_final"
+	feat_map_collection = "feature_maps"
 	print("\nGetting the feature maps from the database...")
 	lfw_feat_maps = map(pickle.loads,
 								 [item['feature_map'] for item in
@@ -313,12 +313,9 @@ def top_result_accuracy():
 		for hash_size in bit_sizes:
 			print("\nFor window size: " + str(window_size) + " - hash size: " + str(hash_size))
 			accurate = 0
-
 			counter = 0
 			for feat_map_index in range(len(lfw_feat_maps)):
 				if feat_map_index in indices_to_avoid:
-					print("I'm avoiding - " + str(feat_map_index))
-					counter += 1
 					continue
 				feat_map = lfw_feat_maps[feat_map_index]
 
@@ -334,54 +331,41 @@ def top_result_accuracy():
 				current_path = printable_paths[feat_map_index]
 
 				top_ten_vecs = []
-				print("For photo: " + current_path)
-				# print("\nTop 10 similar persons to " + current_name + " using feature map vectors:\n")
 				for index in vec_closest_indices:
 					top_ten_vecs.append((printable_names[index], printable_paths[index]))
-					# print(printable_names[index], printable_paths[index])
-				try:
-					# careful!!
-					# print("\n##################### DATABASE SETUP #########################")
-					col_name = "_".join(("hash_maps", str(window_size), str(hash_size), "bit", "final"))
-					lfw_hash_maps = [item['hash_code'] for item in
-									 mongodb_find({}, {'hash_code': 1}, None, collection=col_name, pp=False)]
 
-					current_hash_code = lfw_hash_maps[feat_map_index]
+				col_name = "_".join(("hash_maps", str(window_size), str(hash_size), "bit"))
+				lfw_hash_maps = [item['hash_code'] for item in
+								 mongodb_find({}, {'hash_code': 1}, None, collection=col_name, pp=False)]
 
-					# del lfw_hash_maps[feat_map_index]
+				current_hash_code = lfw_hash_maps[feat_map_index]
 
-					# Calculation of closest hash maps
-					closest_indices = top_n_hamm_hash_codes(current_hash_code, lfw_hash_maps, 1)
+				# Calculation of closest hash maps
+				closest_indices = top_n_hamm_hash_codes(current_hash_code, lfw_hash_maps, 1)
 
-					top_ten_hashes = []
-					for index in closest_indices:
-						top_ten_hashes.append((printable_names[index], printable_paths[index]))
+				top_ten_hashes = []
+				for index in closest_indices:
+					top_ten_hashes.append((printable_names[index], printable_paths[index]))
 
-					common = find_common_in_lists(top_ten_vecs, top_ten_hashes)
-					common_size = len(common)
-					yes_or_no = 'yes' if common_size == 1 else 'no'
-					print("Result in first position: " + yes_or_no)
+				common = find_common_in_lists(top_ten_vecs, top_ten_hashes)
+				common_size = len(common)
+				accurate += common_size
 
-					accurate += common_size
+				del col_name
+				del lfw_hash_maps
+				del current_hash_code
+				del closest_indices
+				del top_ten_hashes
+				del common
 
-					del col_name
-					del lfw_hash_maps
-					del current_hash_code
-					del closest_indices
-					del top_ten_hashes
-					del common
-				except IndexError as er:
-					print(er)
-					continue
+				counter += 1
 
-					counter += 1
-
-					if (counter) % 10 == 0:
-						print("Calculated " + str(counter) + "accuracies")
-						break
+				if (counter) % 100 == 0:
+					print("Calculated " + str(counter) + "accuracies")
+				if (counter) % test_size == 0:
+					break
 
 			accuracies[window_size][get_index(hash_size)] = (accurate/test_size) * 100
-			print(accuracies[window_size][get_index(hash_size)])
 
 			del(accurate)
 			del new_feat_maps
@@ -393,20 +377,25 @@ def top_result_accuracy():
 			del printable_paths
 
 	print(accuracies)
+
+	out_file = path.abspath(path.join(path.dirname(__file__), "data", "first_res_accuracy_" + str(test_size) + ".p"))
+	pickle.dump(accuracies, open(out_file, "wb"))
+
 	print("--- %s seconds ---" % (time.time() - start_time))
 	return True
 
 
 def top_ranked_accuracy(ranksize=10):
-	start_time = time.time()
 	bit_sizes = [64, 256, 1024, 4096]
-	window_sizes = [2400,2600]
+	window_sizes = [2200, 2400, 2600, 2800, 3000]
 	show_top_vecs = True
-	test_size = 10
+	test_size = 100
+	# stop at 1000
 
-	accuracies = nested_dict_from_three_list_combinations(window_sizes, bit_sizes, range(1, 11))
+	accuracies = nested_dict_from_three_list_combinations(window_sizes, bit_sizes, range(1, ranksize+1))
 
 	(chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db()
+	paths = list(itertools.chain.from_iterable(chunked_img_paths))
 	names = np.array(list(itertools.chain.from_iterable(chunked_names)))
 	vals, indices, count = np.unique(names, return_counts = True, return_index=True)
 	indices_to_avoid = indices[count == 1]
@@ -415,8 +404,11 @@ def top_ranked_accuracy(ranksize=10):
 	del chunked_img_paths
 	del chunked_targets
 	del chunked_names
+	del vals
+	del indices
+	del count
 
-	feat_map_collection = "feature_maps_final"
+	feat_map_collection = "feature_maps"
 	print("\nGetting the feature maps from the database...")
 	lfw_feat_maps = map(pickle.loads,
 								 [item['feature_map'] for item in
@@ -424,88 +416,86 @@ def top_ranked_accuracy(ranksize=10):
 
 	for window_size in window_sizes:
 		for hash_size in bit_sizes:
-			print("\nFor window size: " + str(window_size) + " - hash size: " + str(hash_size))
-			for feat_map_index in range(test_size):
-				if feat_map_index in indices_to_avoid:
-					print("I'm avoiding - " + str(feat_map_index))
-					counter += 1
-					continue
-				feat_map = lfw_feat_maps[feat_map_index]
+			col_name = "_".join(("hash_maps", str(window_size), str(hash_size), "bit"))
+			lfw_hash_maps = [item['hash_code'] for item in
+							 mongodb_find({}, {'hash_code': 1}, None, collection=col_name, pp=False)]
 
-				# Calculation of closest feature maps
-				new_feat_maps = np.array(lfw_feat_maps)
-				new_feat_maps = new_feat_maps.reshape(new_feat_maps.shape[0], new_feat_maps.shape[2])
-				vec_closest_indices = top_n_closer_vecs(new_feat_maps, feat_map, 11)[1:]
-
-				printable_names = names
-				printable_paths = paths
-
-				current_name = printable_names[feat_map_index]
-				current_path = printable_paths[feat_map_index]
-
-				top_ten_vecs = []
-				for index in vec_closest_indices:
-					top_ten_vecs.append((printable_names[index], printable_paths[index]))
+			print("\nFor window size: " + str(window_size) + " - hash size: " + str(hash_size) + "\n")
+			counter = 0
+			for feat_map_index in range(len(lfw_feat_maps)):
 				try:
-					# careful!!
-					# print("\n##################### DATABASE SETUP #########################")
+					if feat_map_index in indices_to_avoid:
+						continue
+					feat_map = lfw_feat_maps[feat_map_index]
 
-					col_name = "_".join(("hash_maps", str(window_size), str(hash_size), "bit", "final"))
-					lfw_hash_maps = [item['hash_code'] for item in
-									 mongodb_find({}, {'hash_code': 1}, None, collection=col_name, pp=False)]
+					# Calculation of closest feature maps
+					new_feat_maps = np.array(lfw_feat_maps)
+					new_feat_maps = new_feat_maps.reshape(new_feat_maps.shape[0], new_feat_maps.shape[2])
+					vec_closest_indices = top_n_closer_vecs(new_feat_maps, feat_map, ranksize+1)[1:]
+
+					printable_names = names
+					printable_paths = paths
+
+					current_name = printable_names[feat_map_index]
+					current_path = printable_paths[feat_map_index]
+
+					top_ten_vecs = []
+					for index in vec_closest_indices:
+						top_ten_vecs.append((printable_names[index], printable_paths[index]))
 
 					current_hash_code = lfw_hash_maps[feat_map_index]
 
 					# Calculation of closest hash maps
-					closest_indices = top_n_hamm_hash_codes(current_hash_code, lfw_hash_maps, 11)[1:]
+					closest_indices = top_n_hamm_hash_codes(current_hash_code, lfw_hash_maps, ranksize+1)[1:]
 
 					top_ten_hashes = []
 					for index in closest_indices:
 						top_ten_hashes.append((printable_names[index], printable_paths[index]))
 
+					existing_ranks = {}
+					exists = False
 					for rank in range(1, ranksize+1):
-						exists = False
-						top_hashes = top_ten_hashes[rank:]
-						for person_name, img in top_ten_hashes:
-							if current_name == person_name:
-								exists = True
-								break
+						person_name, img = top_ten_hashes[rank-1]
+						if (current_name == person_name):
+							existing_ranks[rank] = person_name
+							exists = True
 					if exists:
-						print("Found common for - " + current_name)
-						accuracies[window_size][hash_size][rank-1][rank] += 1
+						for existing, nam in existing_ranks.iteritems():
+							accuracies[window_size][hash_size][existing-1][existing] += 1
+						print("Found common for - " + current_name + " - on " + str(len(existing_ranks)) + " rank(s)")
 
-					if (feat_map_index+1) % 10 == 0:
-						print("Calculated " + str(feat_map_index+1) + " accuracies")
-
-					del col_name
-					del lfw_hash_maps
 					del current_hash_code
 					del closest_indices
 					del top_ten_hashes
-					del top_hashes
-				except IndexError as er:
-					print(er)
-					continue
+					del existing_ranks
+					del new_feat_maps
+					del top_ten_vecs
+					del vec_closest_indices
+					del current_name
+					del current_path
+					del printable_names
+					del printable_paths
 
 					counter += 1
 
-					if (counter) % 10 == 0:
-						print("Calculated " + str(counter) + "accuracies")
+					if (counter) % 100 == 0:
+						print("\nCalculated - " + str(counter) + " - accuracies\n")
+					if (counter) % test_size == 0:
 						break
+				except IndexError as er:
+					print(er)
+					continue
+			del col_name
+			del lfw_hash_maps
 
 			for rank in range(1, ranksize+1):
 				accuracies[window_size][hash_size][rank-1][rank] = (accuracies[window_size][hash_size][rank-1][rank]/test_size)*100
 
-			del new_feat_maps
-			del top_ten_vecs
-			del vec_closest_indices
-			del current_name
-			del current_path
-			del printable_names
-			del printable_paths
-
-	import matplotlib.pyplot as plt
 	print(accuracies)
+
+	out_file = path.abspath(path.join(path.dirname(__file__), "data", "old_accuracy_" + str(test_size) + ".p"))
+	pickle.dump(accuracies, open(out_file, "wb"))
+
 	for ws, hs_szs in accuracies.iteritems():
 		for hs, scores in hs_szs.iteritems():
 			rank_list = []
@@ -519,6 +509,94 @@ def top_ranked_accuracy(ranksize=10):
 			plt.axis([1, 10, 0, 120])
 			plt.show()
 	del(accuracies)
+
+	return True
+
+
+def feature_rank_accuracy(ranksize=10):
+	accurate = 0
+	start_time = time.time()
+	show_top_vecs = True
+	test_size = 1000
+
+	accuracies = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0}
+
+	(chunked_img_paths, chunked_targets, chunked_names, img_options) = load_lfw_db()
+	paths = list(itertools.chain.from_iterable(chunked_img_paths))
+	names = np.array(list(itertools.chain.from_iterable(chunked_names)))
+	vals, indices, count = np.unique(names, return_counts = True, return_index=True)
+	indices_to_avoid = indices[count == 1]
+	names = names.tolist()
+
+	del chunked_img_paths
+	del chunked_targets
+	del chunked_names
+	del vals
+	del indices
+	del count
+
+	feat_map_collection = "feature_maps_final"
+	print("\nGetting the feature maps from the database...")
+	lfw_feat_maps = map(pickle.loads,
+								 [item['feature_map'] for item in
+								  mongodb_find({}, {'feature_map': 1}, None, collection=feat_map_collection, pp=False)])
+
+	counter = 0
+	for feat_map_index in range(len(lfw_feat_maps)):
+		if feat_map_index in indices_to_avoid:
+			continue
+		feat_map = lfw_feat_maps[feat_map_index]
+
+		# Calculation of closest feature maps
+		new_feat_maps = np.array(lfw_feat_maps)
+		new_feat_maps = new_feat_maps.reshape(new_feat_maps.shape[0], new_feat_maps.shape[2])
+		vec_closest_indices = top_n_closer_vecs(new_feat_maps, feat_map, ranksize+1)[1:]
+
+		printable_names = names
+		printable_paths = paths
+
+		current_name = printable_names[feat_map_index]
+		current_path = printable_paths[feat_map_index]
+
+		top_ten_vecs = []
+		for index in vec_closest_indices:
+			top_ten_vecs.append((printable_names[index], printable_paths[index]))
+
+		existing_ranks = {}
+		exists = False
+		for rank in range(1, ranksize+1):
+			person_name, img = top_ten_vecs[rank-1]
+			if (current_name == person_name):
+				existing_ranks[rank] = person_name
+				exists = True
+		if exists:
+			for existing, nam in existing_ranks.iteritems():
+				accuracies[existing] += 1
+			print("Found common for - " + current_name + " - on " + str(len(existing_ranks)) + " rank(s)")
+
+		del top_ten_vecs
+		del vec_closest_indices
+		del new_feat_maps
+		del current_name
+		del current_path
+		del printable_names
+		del printable_paths
+
+		counter += 1
+
+		if (counter) % 100 == 0:
+			print("\nCalculated " + str(counter) + " feat map accuracies\n")
+		if (counter) % test_size == 0:
+			break
+
+	for rank in range(1, ranksize+1):
+		accuracies[rank] = (accuracies[rank]/test_size)*100
+
+	print(accuracies)
+
+	out_file = path.abspath(path.join(path.dirname(__file__), "data", "feat_map_accuracy_" + str(test_size) + ".p"))
+	pickle.dump(accuracies, open(out_file, "wb"))
+
 	print("--- %s seconds ---" % (time.time() - start_time))
 	return True
 
@@ -531,8 +609,9 @@ if __name__ == '__main__':
 	# deep_face_hashing(fpath='/home/aandronis/projects/deep_face_hash/deep_face_hash/data/img/test/', print_names=True)
 	# batch_test_lfw_hashes(print_names=False)
 	# top_result_accuracy()
-	# top_ranked_accuracy()
-	generate_multiple_hash_map_collections()
+	top_ranked_accuracy()
+	# feature_rank_accuracy()
+	# generate_multiple_hash_map_collections()
 
 # [ 9666  6731  9569 12782  4295  1290 12044 13054 10929 12874]
 
